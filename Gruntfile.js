@@ -230,13 +230,11 @@ module.exports = function (grunt) {
       },
       commit: {
         cmd: function(commit) {
-          return 'git commit -m ' + commit + ' .dist';
+          return 'git add .dist && git commit -m "' + commit + '" .dist';
         }
       },
       deploy: {
-        cmd: function(deploy) {
-          return 'git subtree push --prefix .dist origin gh-pages';
-        }
+        cmd: 'git subtree push --prefix .dist origin gh-pages'
       }
     }
 
@@ -274,15 +272,19 @@ module.exports = function (grunt) {
 
     if (commit) {
       if (commit === true) {
-        commit = "Production build and commit";
+        commit = 'Production build and commit';
       }
       grunt.task.run(['exec:commit:' + commit]);
     }
 
     if (deploy) {
-      grunt.task.run(['exec:deploy:' + deploy]);
+      grunt.task.run(['exec:deploy']);
     }
   });
+
+  grunt.registerTask('deploy', [
+    'exec:deploy'
+  ]);
 
   //////////////////////////////
   // Server Tasks
