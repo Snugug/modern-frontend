@@ -2,6 +2,7 @@
 
 var port = 8000;
 var lrport = port + 1;
+var gh_repo = 'modern-frontend';
 
 module.exports = function (grunt) {
 
@@ -62,7 +63,8 @@ module.exports = function (grunt) {
           handlebarsHelpers: 'helpers',
           environment: 'dev',
           development: true,
-          lrport: lrport
+          lrport: lrport,
+          assets: ''
         }
       },
       dist: {
@@ -77,7 +79,8 @@ module.exports = function (grunt) {
           templates: 'templates',
           handlebarsHelpers: 'helpers',
           environment: 'prod',
-          development: false
+          development: false,
+          assets: '/' + gh_repo
         }
       }
     },
@@ -222,11 +225,18 @@ module.exports = function (grunt) {
     },
 
     exec: {
-      git_status: {
-        cmd: 'git status'
-      },
       launch: {
         cmd: 'open http://localhost:' + port + '&& echo "Launched localhost:"' + port
+      },
+      commit: {
+        cmd: function(commit) {
+          return 'git commit -m ' + commit + ' .dist';
+        }
+      },
+      deploy: {
+        cmd: function(deploy) {
+          return 'git subtree push --prefix .dist origin gh-pages';
+        }
       }
     }
 
@@ -253,13 +263,30 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-exec');
 
-  grunt.registerTask('build', [
-    'parallel:assets',
-    'compass:dist',
-    'jshint',
-    'exec:git_status'
-  ]);
+  //////////////////////////////
+  // Build Task
+  //////////////////////////////
+  grunt.registerTask('build', 'Production build', function() {
+    var commit = grunt.option('commit');
+    var deploy = grunt.option('deploy');
 
+    grunt.task.run(['parallel:assets', 'compass:dist', 'jshint']);
+
+    if (commit) {
+      if (commit === true) {
+        commit = "Production build and commit";
+      }
+      grunt.task.run(['exec:commit:' + commit]);
+    }
+
+    if (deploy) {
+      grunt.task.run(['exec:deploy:' + deploy]);
+    }
+  });
+
+  //////////////////////////////
+  // Server Tasks
+  //////////////////////////////
   grunt.registerTask('server-init', [
     'copy:dev',
     'compass:dev',
@@ -267,23 +294,19 @@ module.exports = function (grunt) {
     'jshint'
   ]);
 
-  // Launch option to start server and launch site
-  var launch = grunt.option('launch');
-  if (launch) {
-    grunt.registerTask('server', [
-      'server-init',
-      'connect',
-      'exec:launch',
-      'watch'
-    ]);
-  }
-  else {
-    grunt.registerTask('server', [
-      'server-init',
-      'connect',
-      'watch'
-    ]);
-  }
+  grunt.registerTask('server', 'Starts a development server', function() {
+
+    var launch = grunt.option('launch');
+
+    grunt.task.run(['server-init', 'connect']);
+
+    if (launch) {
+      grunt.task.run('exec:launch');
+    }
+
+    grunt.task.run('watch');
+
+  });
 
 
 };
